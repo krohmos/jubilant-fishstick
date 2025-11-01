@@ -7,7 +7,7 @@ name = "harborpi"
 version = "0.1.0"
 description = "A Raspberry Pi-based local logbook and dashboard for sailors."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
   { name = "Werner Brand", email = "werner.brand@mowi.com" }
 ]
