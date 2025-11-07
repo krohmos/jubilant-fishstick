@@ -8,6 +8,7 @@
           href="{{ url_for('static', filename='pico.min.css') }}">
     </head>
 <body>
+    <main class="container">
     <h1>HarborPI</h1>
     
     <fieldset>
@@ -48,5 +49,6 @@
         fetchData();
         setInterval(fetchData, 10000);
     </script>
+    </main>
 </body>
 </html>
