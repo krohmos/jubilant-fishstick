@@ -9,46 +9,78 @@
     </head>
 <body>
     <main class="container">
-    <h1>HarborPI</h1>
-    
-    <fieldset>
-        <legend>Latest Status</legend>
-        <pre id="latest-data">Loading...</pre>
-    </fieldset>
+        
+        <article>
+            <header>New Manual Entry</header>
+            <form id="manual-entry-form">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" required></textarea>
+                
+                <div class="grid">
+                    <label for="lat">
+                        Latitude
+                        <input type="text" id="lat" name="lat" placeholder="0.0">
+                    </label>
+                    <label for="lon">
+                        Longitude
+                        <input type="text" id="lon" name="lon" placeholder="0.0">
+                    </label>
+                </div>
+                
+                <button type="submit">Add Manual Entry</button>
+            </form>
+        </article>
 
-    <fieldset>
-        <legend>Logbook</legend>
-        <pre id="logbook-data">Loading...</pre>
-    </fieldset>
+        <article>
+            <header>Latest Status</header>
+            <pre id="latest-data">Loading...</pre>
+        </article>
+
+        <article>
+            <header>Logbook Entries</header>
+            <pre id="logbook-data">Loading...</pre>
+        </article>
+    </main>
 
     <script>
-        // Simple client-side JS to test the API
-        
-        async function fetchData() {
-            try {
-                // Fetch latest sample
-                const latestRes = await fetch('/api/v1/latest');
-                const latestData = await latestRes.json();
-                document.getElementById('latest-data').textContent = 
-                    JSON.stringify(latestData, null, 2);
+        // --- Manual Form Submission ---
+        document.getElementById('manual-entry-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                notes: form.notes.value,
+                lat: parseFloat(form.lat.value) || 0.0,
+                lon: parseFloat(form.lon.value) || 0.0,
+            };
 
-                // Fetch logbook
-                const logbookRes = await fetch('/api/v1/logbook');
-                const logbookData = await logbookRes.json();
-                document.getElementById('logbook-data').textContent = 
-                    JSON.stringify(logbookData, null, 2);
+            try {
+                const response = await fetch('/api/v1/logbook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to post: ${response.statusText}`);
+                }
+                
+                // Clear form and refresh data
+                form.reset();
+                fetchData();
 
             } catch (err) {
-                console.error("Failed to fetch data:", err);
-                document.getElementById('latest-data').textContent = "Error loading data.";
-                document.getElementById('logbook-data').textContent = "Error loading data.";
+                console.error("Failed to submit manual entry:", err);
+                alert("Failed to submit entry.");
             }
+        });
+
+        // --- Data Fetching ---
+        async function fetchData() {
+            // ... (existing code) ...
         }
         
-        // Fetch on load and then every 10 seconds
         fetchData();
         setInterval(fetchData, 10000);
     </script>
-    </main>
 </body>
 </html>
