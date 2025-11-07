@@ -25,27 +25,6 @@ def index() -> str:
 # --- API Endpoints ---
 
 
-@app.route("/api/v1/logbook", methods=["GET"])
-def get_logbook_entries() -> Response:
-    """
-    Fetches all logbook 'entries' from the database, newest first.
-    """
-    # ... (existing code from before) ...
-    try:
-        db_conn = get_db_connection()
-        cursor = db_conn.cursor()
-        cursor.execute("SELECT * FROM entries ORDER BY ts_utc DESC")
-        rows = cursor.fetchall()
-        db_conn.close()
-
-        entries = [dict(row) for row in rows]
-        return jsonify(entries)
-
-    except Exception as e:
-        log.error(f"API Error in /api/v1/logbook: {e}")
-        return jsonify({"error": "Database query failed"}), 500
-
-
 @app.route("/api/v1/logbook", methods=["POST"])
 def create_logbook_entry() -> Response:
     """
