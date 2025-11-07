@@ -25,12 +25,6 @@ def index() -> str:
 # --- API Endpoints ---
 
 
-@app.route("/api/v1/latest")
-def get_latest_sample() -> Response:
-    # ... (existing code) ...
-    pass
-
-
 @app.route("/api/v1/logbook", methods=["GET"])
 def get_logbook_entries() -> Response:
     """
