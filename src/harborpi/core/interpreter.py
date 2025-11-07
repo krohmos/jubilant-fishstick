@@ -23,6 +23,8 @@ class LogbookInterpreter:
     when the vessel stops to anchor or starts moving).
     """
 
+    from harborpi.utils.network import get_weather_and_location
+
     def __init__(self, db_conn: sqlite3.Connection) -> None:
         """
         Initializes the interpreter with a database connection.
@@ -120,6 +122,58 @@ class LogbookInterpreter:
         except sqlite3.Error as e:
             log.error(f"Failed to create new entry: {e}")
             self.db_conn.rollback()
+
+    def backfill_job(self) -> None:
+        """
+        Finds entries with missing network data and backfills them.
+
+        This job runs on a separate, slower schedule to fetch place
+        names and weather data for entries that were created while
+        offline or before the network calls completed.
+        """
+        log.debug("Backfill job running...")
+        try:
+            cursor = self.db_conn.cursor()
+            # Find up to 5 entries missing a place name or weather
+            cursor.execute(
+                "SELECT * FROM entries "
+                "WHERE place_name IS NULL OR wx_json IS NULL "
+                "ORDER BY ts_utc DESC LIMIT 5"
+            )
+            rows = cursor.fetchall()
+        except sqlite3.Error as e:
+            log.error(f"Backfill job failed to select entries: {e}")
+            return
+
+        if not rows:
+            log.debug("No entries to backfill.")
+            return
+
+        for row in rows:
+            entry = dict(row)
+            log.info(f"Backfilling network data for entry {entry['id']}")
+
+            place_name, weather_json = get_weather_and_location(
+                entry["lat"], entry["lon"]
+            )
+
+            if place_name or weather_json:
+                try:
+                    # Only update the fields we fetched
+                    cursor.execute(
+                        """
+                        UPDATE entries 
+                        SET 
+                            place_name = COALESCE(?, place_name),
+                            wx_json = COALESCE(?, wx_json)
+                        WHERE id = ?
+                        """,
+                        (place_name, weather_json, entry["id"]),
+                    )
+                    self.db_conn.commit()
+                except sqlite3.Error as e:
+                    log.error(f"Backfill job failed to update entry {entry['id']}: {e}")
+                    self.db_conn.rollback()
 
     def run_job(self) -> None:
         """
@@ -234,12 +288,24 @@ def run_interpreter_scheduler(stop_event: threading.Event) -> None:
     # Schedule the job to run every 5 minutes
     scheduler.add_job(interpreter.run_job, "interval", minutes=5, id="interpreter_job")
 
+    # --- State change job (runs every 5 min) ---
+    scheduler.add_job(interpreter.run_job, "interval", minutes=5, id="interpreter_job")
+
     # Run an initial check 15 seconds after startup
     scheduler.add_job(
         interpreter.run_job,
         "date",
         run_date=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time() + 15)),
         id="initial_run",
+    )
+    # --- Network backfill job (runs every 15 min) ---
+    scheduler.add_job(
+        interpreter.backfill_job,
+        "interval",
+        minutes=15,
+        id="backfill_job",
+        # Run first backfill 1 minute after startup
+        next_run_time=datetime.now(timezone.utc) + timedelta(minutes=1),
     )
 
     # This loop allows the scheduler to be stopped gracefully
