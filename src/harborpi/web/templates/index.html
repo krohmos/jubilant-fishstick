@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HarborPI Logbook</title>
+    </head>
+<body>
+    <h1>HarborPI</h1>
+    
+    <fieldset>
+        <legend>Latest Status</legend>
+        <pre id="latest-data">Loading...</pre>
+    </fieldset>
+
+    <fieldset>
+        <legend>Logbook</legend>
+        <pre id="logbook-data">Loading...</pre>
+    </fieldset>
+
+    <script>
+        // Simple client-side JS to test the API
+        
+        async function fetchData() {
+            try {
+                // Fetch latest sample
+                const latestRes = await fetch('/api/v1/latest');
+                const latestData = await latestRes.json();
+                document.getElementById('latest-data').textContent = 
+                    JSON.stringify(latestData, null, 2);
+
+                // Fetch logbook
+                const logbookRes = await fetch('/api/v1/logbook');
+                const logbookData = await logbookRes.json();
+                document.getElementById('logbook-data').textContent = 
+                    JSON.stringify(logbookData, null, 2);
+
+            } catch (err) {
+                console.error("Failed to fetch data:", err);
+                document.getElementById('latest-data').textContent = "Error loading data.";
+                document.getElementById('logbook-data').textContent = "Error loading data.";
+            }
+        }
+        
+        // Fetch on load and then every 10 seconds
+        fetchData();
+        setInterval(fetchData, 10000);
+    </script>
+</body>
+</html>
