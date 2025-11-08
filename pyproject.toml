@@ -8,8 +8,6 @@ dependencies = [
     "pydantic-settings",
     "pyserial",
     "pynmea2",
-    "requests",
-    "ephem",
     # "smbus2",        # For optional I2C sensors
 ]
 
